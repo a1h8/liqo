@@ -14,6 +14,13 @@ spec:
       enableBroadcaster: true
     keepaliveThreshold: 3
     keepaliveRetryTime: 20
+  agentConfig:
+    dashboardConfig:
+      namespace: {{ .Release.Namespace }}
+      service: {{ .Values.liqodash_chart.agentConfig.service }}
+      serviceAccount: {{ .Values.liqodash_chart.agentConfig.serviceAccount }}
+      ingress: {{ .Values.liqodash_chart.agentConfig.ingress }}
+      appLabel: {{ .Values.liqodash_chart.agentConfig.appLabel }}
   discoveryConfig:
     clusterName: {{ .Values.clusterName}}
     autojoin: true

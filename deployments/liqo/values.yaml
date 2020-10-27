@@ -84,6 +84,11 @@ liqodash:
     repository: "liqo/dashboard"
     pullPolicy: "IfNotPresent"
   enabled: true
+  agentConfig:
+    service: "liqo-dashboard"
+    serviceAccount: "liqodash-admin-sa"
+    ingress: "liqo-dashboard-ingress"
+    appLabel: "liqo-dashboard"
 
 crdReplicator:
   image:
