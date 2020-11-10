@@ -12,7 +12,6 @@ import (
 	kerror "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/watch"
-	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/retry"
 	"k8s.io/klog"
 	"strings"
@@ -137,7 +136,7 @@ func (r *EndpointSlicesReflector) PreUpdate(newObj, _ interface{}) interface{} {
 		return nil
 	}
 	key := r.Keyer(nattedNs, endpointSliceLocal.Name)
-	oldRemoteObj, err := r.GetObjFromForeignCache(nattedNs, key)
+	oldRemoteObj, err := r.GetCacheManager().GetForeignNamespacedObject(apimgmt.EndpointSlices, nattedNs, key)
 	if err != nil {
 		err = errors.Wrapf(err, "endpointslices %v", key)
 		klog.Error(err)
@@ -202,14 +201,11 @@ func (r *EndpointSlicesReflector) CleanupNamespace(localNamespace string) {
 		return
 	}
 
-	// resync for ensuring to be remotely aligned with the foreign cluster state
-	err = r.ForeignInformer(foreignNamespace).GetStore().Resync()
+	objects, err := r.GetCacheManager().ResyncListForeignNamespacedObject(apimgmt.EndpointSlices, foreignNamespace)
 	if err != nil {
-		klog.Errorf("error while resyncing endpointslices foreign cache - ERR: %v", err)
+		klog.Error(err)
 		return
 	}
-
-	objects := r.ForeignInformer(foreignNamespace).GetStore().List()
 
 	retriable := func(err error) bool {
 		switch kerror.ReasonForError(err) {
@@ -242,18 +238,4 @@ func (r *EndpointSlicesReflector) isAllowed(obj interface{}) bool {
 		klog.V(4).Infof("endpointslice %v blacklisted", key)
 	}
 	return !ok
-}
-
-func addEndpointSlicesIndexers() cache.Indexers {
-	i := cache.Indexers{}
-	i["EndpointSlice"] = func(obj interface{}) ([]string, error) {
-		endpointSlice, ok := obj.(*discoveryv1beta1.EndpointSlice)
-		if !ok {
-			return []string{}, errors.New("cannot convert obj to configmap")
-		}
-		return []string{
-			strings.Join([]string{endpointSlice.Namespace, endpointSlice.Name}, "/"),
-		}, nil
-	}
-	return i
 }

@@ -9,7 +9,6 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/watch"
-	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/retry"
 	"k8s.io/klog"
 	"strings"
@@ -108,7 +107,7 @@ func (r *ConfigmapsReflector) PreUpdate(newObj, _ interface{}) interface{} {
 	}
 
 	key := r.KeyerFromObj(newObj, nattedNs)
-	oldRemoteObj, err := r.GetObjFromForeignCache(nattedNs, key)
+	oldRemoteObj, err := r.GetCacheManager().GetForeignNamespacedObject(apimgmt.Configmaps, nattedNs, key)
 	if err != nil {
 		err = errors.Wrapf(err, "configmap %v", key)
 		klog.Error(err)
@@ -168,14 +167,11 @@ func (r *ConfigmapsReflector) CleanupNamespace(localNamespace string) {
 		return
 	}
 
-	// resync for ensuring to be remotely aligned with the foreign cluster state
-	err = r.ForeignInformer(foreignNamespace).GetStore().Resync()
+	objects, err := r.GetCacheManager().ResyncListForeignNamespacedObject(apimgmt.Configmaps, foreignNamespace)
 	if err != nil {
-		klog.Errorf("error while resyncing configmaps foreign cache - ERR: %v", err)
+		klog.Error(err)
 		return
 	}
-
-	objects := r.ForeignInformer(foreignNamespace).GetStore().List()
 
 	retriable := func(err error) bool {
 		switch kerrors.ReasonForError(err) {
@@ -194,18 +190,4 @@ func (r *ConfigmapsReflector) CleanupNamespace(localNamespace string) {
 			klog.Errorf("Error while deleting remote configmap %v/%v", cm.Namespace, cm.Name)
 		}
 	}
-}
-
-func addConfigmapsIndexers() cache.Indexers {
-	i := cache.Indexers{}
-	i["configmaps"] = func(obj interface{}) ([]string, error) {
-		cm, ok := obj.(*corev1.ConfigMap)
-		if !ok {
-			return []string{}, errors.New("cannot convert obj to configmap")
-		}
-		return []string{
-			strings.Join([]string{cm.Namespace, cm.Name}, "/"),
-		}, nil
-	}
-	return i
 }
