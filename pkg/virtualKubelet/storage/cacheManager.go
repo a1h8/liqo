@@ -79,12 +79,7 @@ func (cm *Manager) AddHomeEventHandlers(api apimgmt.ApiType, namespace string, h
 		return errors.New("home informer set to nil")
 	}
 
-	apiCache := cm.homeInformers.Namespace(namespace)
-	if apiCache == nil {
-		return errors.Errorf("home cache for api %v in namespace %v not existing", apimgmt.ApiNames[api], namespace)
-	}
-
-	informer := apiCache.informer(api)
+	informer := cm.homeInformers.Namespace(namespace).informer(api)
 	if informer == nil {
 		return errors.Errorf("cannot set handlers, home informer for api %v in namespace %v does not exist", apimgmt.ApiNames[api], namespace)
 	}
@@ -98,12 +93,11 @@ func (cm *Manager) AddForeignEventHandlers(api apimgmt.ApiType, namespace string
 	cm.foreignInformers.mutex.Lock()
 	defer cm.foreignInformers.mutex.Unlock()
 
-	apiCache := cm.foreignInformers.Namespace(namespace)
-	if apiCache == nil {
-		return errors.Errorf("foreign cache for api %v in namespace %v not existing", apimgmt.ApiNames[api], namespace)
+	if cm.homeInformers == nil {
+		return errors.New("foreign informer set to nil")
 	}
 
-	informer := apiCache.informer(api)
+	informer := cm.foreignInformers.Namespace(namespace).informer(api)
 	if informer == nil {
 		return errors.Errorf("cannot set handlers, foreign informer for api %v in namespace %v does not exist", apimgmt.ApiNames[api], namespace)
 	}
@@ -121,12 +115,7 @@ func (cm *Manager) GetHomeNamespacedObject(api apimgmt.ApiType, namespace, key s
 	cm.homeInformers.mutex.RLock()
 	defer cm.homeInformers.mutex.RUnlock()
 
-	apiCache := cm.homeInformers.Namespace(namespace)
-	if apiCache == nil {
-		return nil, errors.Errorf("home cache for api %v in namespace %v not existing", apimgmt.ApiNames[api], namespace)
-	}
-
-	return apiCache.getApi(api, key)
+	return cm.homeInformers.Namespace(namespace).getApi(api, key)
 }
 
 func (cm *Manager) GetForeignNamespacedObject(api apimgmt.ApiType, namespace, key string) (interface{}, error) {
@@ -137,12 +126,7 @@ func (cm *Manager) GetForeignNamespacedObject(api apimgmt.ApiType, namespace, ke
 	cm.foreignInformers.mutex.RLock()
 	defer cm.foreignInformers.mutex.RUnlock()
 
-	apiCache := cm.foreignInformers.Namespace(namespace)
-	if apiCache == nil {
-		return nil, errors.Errorf("foreign cache for api %v in namespace %v not existing", apimgmt.ApiNames[api], namespace)
-	}
-
-	return apiCache.getApi(api, key)
+	return cm.foreignInformers.Namespace(namespace).getApi(api, key)
 }
 
 func (cm *Manager) ListHomeNamespacedObject(api apimgmt.ApiType, namespace string) ([]interface{}, error) {
@@ -153,13 +137,7 @@ func (cm *Manager) ListHomeNamespacedObject(api apimgmt.ApiType, namespace strin
 	cm.homeInformers.mutex.RLock()
 	defer cm.homeInformers.mutex.RUnlock()
 
-	apiCache := cm.homeInformers.Namespace(namespace)
-	if apiCache == nil {
-		return nil, errors.Errorf("home cache for api %v in namespace %v not existing", apimgmt.ApiNames[api], namespace)
-	}
-
-	objects, err := apiCache.
-		listApi(api)
+	objects, err := cm.homeInformers.Namespace(namespace).listApi(api)
 	if err != nil {
 		return nil, err
 	}
@@ -175,12 +153,7 @@ func (cm *Manager) ListForeignNamespacedObject(api apimgmt.ApiType, namespace st
 	cm.foreignInformers.mutex.RLock()
 	defer cm.foreignInformers.mutex.RUnlock()
 
-	apiCache := cm.foreignInformers.Namespace(namespace)
-	if apiCache == nil {
-		return nil, errors.Errorf("foreign cache for api %v in namespace %v not existing", apimgmt.ApiNames[api], namespace)
-	}
-
-	objects, err := apiCache.listApi(api)
+	objects, err := cm.foreignInformers.Namespace(namespace).listApi(api)
 	if err != nil {
 		return nil, err
 	}
