@@ -24,6 +24,12 @@ func (discovery *DiscoveryCtrl) Register() {
 		var ttl = discovery.Config.Ttl
 		discovery.serverMux.Lock()
 		discovery.mdnsServer, err = zeroconf.Register(discovery.Config.Name+"_"+discovery.ClusterId.GetClusterID(), discovery.Config.Service, discovery.Config.Domain, discovery.Config.Port, txt, discovery.getInterfaces(), ttl)
+		if err != nil {
+			discovery.serverMux.Unlock()
+			klog.Error(err)
+			return
+		}
+		discovery.mdnsServerAuth, err = zeroconf.Register(discovery.Config.Name+"_"+discovery.ClusterId.GetClusterID(), "_auth._tcp", discovery.Config.Domain, 1234, nil, discovery.getInterfaces(), ttl)
 		discovery.serverMux.Unlock()
 		if err != nil {
 			klog.Error(err)
@@ -38,6 +44,7 @@ func (discovery *DiscoveryCtrl) shutdownServer() {
 	discovery.serverMux.Lock()
 	defer discovery.serverMux.Unlock()
 	discovery.mdnsServer.Shutdown()
+	discovery.mdnsServerAuth.Shutdown()
 }
 
 func (discovery *DiscoveryCtrl) getInterfaces() []net.Interface {

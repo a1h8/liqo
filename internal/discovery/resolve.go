@@ -6,20 +6,22 @@ import (
 	"k8s.io/klog"
 	"net"
 	"os"
+	"reflect"
 	"time"
 )
 
 func (discovery *DiscoveryCtrl) StartResolver(stopChan <-chan bool) {
 	for {
 		if discovery.Config.EnableDiscovery {
-			discovery.Resolve(context.TODO(), discovery.Config.Service, discovery.Config.Domain, stopChan, nil)
+			discovery.Resolve(context.TODO(), discovery.Config.Service, discovery.Config.Domain, stopChan, nil, false)
+			discovery.Resolve(context.TODO(), "_auth._tcp", discovery.Config.Domain, stopChan, nil, true)
 		} else {
 			break
 		}
 	}
 }
 
-func (discovery *DiscoveryCtrl) Resolve(ctx context.Context, service string, domain string, stopChan <-chan bool, resultChan chan *TxtData) {
+func (discovery *DiscoveryCtrl) Resolve(ctx context.Context, service string, domain string, stopChan <-chan bool, resultChan chan DiscoveryData, isAuth bool) {
 	resolver, err := zeroconf.NewResolver(zeroconf.SelectIPTraffic(zeroconf.IPv4))
 	if err != nil {
 		klog.Error(err, err.Error())
@@ -29,7 +31,13 @@ func (discovery *DiscoveryCtrl) Resolve(ctx context.Context, service string, dom
 	entries := make(chan *zeroconf.ServiceEntry, 10)
 	go func(results <-chan *zeroconf.ServiceEntry) {
 		for entry := range results {
-			data, err := discovery.getTxt(entry)
+			var data DiscoveryData
+			if isAuth {
+				data = &AuthData{}
+			} else {
+				data = &TxtData{}
+			}
+			err := data.Get(discovery, entry)
 			if err != nil {
 				klog.Error(err)
 				continue
@@ -37,10 +45,12 @@ func (discovery *DiscoveryCtrl) Resolve(ctx context.Context, service string, dom
 			if resultChan != nil {
 				resultChan <- data
 			}
-			if data != nil {
+			if !reflect.ValueOf(data).IsNil() {
 				// it is not a local cluster
 				klog.V(4).Infof("FC data: %v", data)
-				discovery.UpdateForeignLAN(data)
+				resolvedData.add(entry.Instance, data)
+				// TODO
+				discovery.UpdateForeignLAN(data.(*TxtData))
 			}
 		}
 	}(entries)
@@ -60,20 +70,6 @@ func (discovery *DiscoveryCtrl) Resolve(ctx context.Context, service string, dom
 	case <-ctx.Done():
 		return
 	}
-}
-
-func (discovery *DiscoveryCtrl) getTxt(entry *zeroconf.ServiceEntry) (*TxtData, error) {
-	if discovery.isForeign(entry.AddrIPv4) {
-		txtData, err := Decode("", "", entry.Text)
-		if err != nil {
-			klog.Error(err)
-			return nil, err
-		}
-		klog.V(4).Infof("Remote cluster found at %s", txtData.ApiUrl)
-		txtData.Ttl = entry.TTL
-		return txtData, nil
-	}
-	return nil, nil
 }
 
 func (discovery *DiscoveryCtrl) getIPs() map[string]bool {
