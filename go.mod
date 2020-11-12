@@ -36,6 +36,7 @@ require (
 	go.uber.org/multierr v1.4.0 // indirect
 	golang.org/x/sys v0.0.0-20201015000850-e3ed0017c211
 	golang.org/x/tools v0.0.0-20200616195046-dc31b401abb5
+	golang.zx2c4.com/wireguard/wgctrl v0.0.0-20200609130330-bd2cb7843e1b
 	gotest.tools v2.2.0+incompatible
 	k8s.io/api v0.18.6
 	k8s.io/apimachinery v0.18.6

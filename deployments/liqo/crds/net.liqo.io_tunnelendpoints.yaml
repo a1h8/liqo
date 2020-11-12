@@ -22,24 +22,43 @@ spec:
         description: TunnelEndpoint is the Schema for the endpoints API
         properties:
           apiVersion:
-            description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
             type: string
           kind:
-            description: 'Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
             type: string
           metadata:
             type: object
           spec:
             description: TunnelEndpointSpec defines the desired state of TunnelEndpoint
             properties:
+              backend_config:
+                additionalProperties:
+                  type: string
+                description: connection parameters
+                type: object
+              backendType:
+                description: vpn technology used to interconnect two clusters
+                type: string
               clusterID:
-                description: 'INSERT ADDITIONAL SPEC FIELDS - desired state of cluster Important: Run "make" to regenerate code after modifying this file'
+                description: 'INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
+                  Important: Run "make" to regenerate code after modifying this file
+                  the ID of the remote cluster that will receive this CRD'
                 type: string
               podCIDR:
+                description: network subnet used in the local cluster for the pod
+                  IPs
                 type: string
               tunnelPublicIP:
+                description: public IP of the node where the VPN tunnel is created
                 type: string
             required:
+            - backendType
+            - backend_config
             - clusterID
             - podCIDR
             - tunnelPublicIP
@@ -47,14 +66,37 @@ spec:
           status:
             description: TunnelEndpointStatus defines the observed state of TunnelEndpoint
             properties:
-              NAT:
+              connection:
+                properties:
+                  peerConfiguration:
+                    additionalProperties:
+                      type: string
+                    type: object
+                  status:
+                    type: string
+                  statusMessage:
+                    type: string
+                required:
+                - peerConfiguration
+                - status
+                - statusMessage
+                type: object
+              incomingNAT:
+                description: if true, the remote podCIDR has been remapped by the
+                  local cluster
                 type: boolean
               localRemappedPodCIDR:
                 type: string
               localTunnelPublicIP:
                 type: string
+              outgoingNAT:
+                description: if true, the local podCIDR has been remapped by the remote
+                  cluster
+                type: boolean
               phase:
-                description: 'INSERT ADDITIONAL STATUS FIELD - define observed state of cluster Important: Run "make" to regenerate code after modifying this file\'
+                description: 'INSERT ADDITIONAL STATUS FIELD - define observed state
+                  of cluster Important: Run "make" to regenerate code after modifying
+                  this file\'
                 type: string
               remoteRemappedPodCIDR:
                 type: string
@@ -64,6 +106,8 @@ spec:
                 type: integer
               tunnelIFaceName:
                 type: string
+            required:
+            - connection
             type: object
         type: object
     served: true

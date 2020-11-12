@@ -485,7 +485,7 @@ func TestNetConfigProcessing(t *testing.T) {
 	assert.Equal(t, netConfig2.Status.PodCIDRNAT, tep.Status.LocalRemappedPodCIDR)
 	assert.Equal(t, netConfig2.Spec.ClusterID, tep.Spec.ClusterID)
 	assert.Equal(t, netConfig1.Spec.PodCIDR, tep.Spec.PodCIDR)
-	assert.Equal(t, netConfig1.Spec.TunnelPublicIP, tep.Spec.TunnelPublicIP)
+	assert.Equal(t, netConfig1.Spec.TunnelPublicIP, tep.Spec.EndpointIP)
 	assert.Equal(t, "Ready", tep.Status.Phase)
 
 	//test4

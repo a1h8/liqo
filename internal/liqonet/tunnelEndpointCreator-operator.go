@@ -447,8 +447,8 @@ func (r *TunnelEndpointCreator) UpdateSpecTunnelEndpoint(param networkParam) err
 			tep.Spec.ClusterID = param.remoteClusterID
 			toBeUpdated = true
 		}
-		if tep.Spec.TunnelPublicIP != param.remoteGatewayIP {
-			tep.Spec.TunnelPublicIP = param.remoteGatewayIP
+		if tep.Spec.EndpointIP != param.remoteGatewayIP {
+			tep.Spec.EndpointIP = param.remoteGatewayIP
 			toBeUpdated = true
 		}
 		if tep.Spec.PodCIDR != param.remotePodCIDR {
@@ -494,8 +494,8 @@ func (r *TunnelEndpointCreator) UpdateStatusTunnelEndpoint(param networkParam) e
 			tep.Status.LocalTunnelPublicIP = param.localGatewayIP
 			toBeUpdated = true
 		}
-		if tep.Status.RemoteTunnelPublicIP != param.remoteGatewayIP {
-			tep.Status.RemoteTunnelPublicIP = param.remoteGatewayIP
+		if tep.Status.RemoteEndpointIP != param.remoteGatewayIP {
+			tep.Status.RemoteEndpointIP = param.remoteGatewayIP
 			toBeUpdated = true
 		}
 		if tep.Status.Phase != "Ready" {
@@ -525,15 +525,15 @@ func (r *TunnelEndpointCreator) CreateTunnelEndpoint(param networkParam, owner *
 			},
 		},
 		Spec: netv1alpha1.TunnelEndpointSpec{
-			ClusterID:      param.remoteClusterID,
-			PodCIDR:        param.remotePodCIDR,
-			TunnelPublicIP: param.remoteGatewayIP,
+			ClusterID:  param.remoteClusterID,
+			PodCIDR:    param.remotePodCIDR,
+			EndpointIP: param.remoteGatewayIP,
 		},
 		Status: netv1alpha1.TunnelEndpointStatus{
 			Phase:                 "Ready",
 			LocalRemappedPodCIDR:  param.localNatPodCIDR,
 			RemoteRemappedPodCIDR: param.remoteNatPodCIDR,
-			RemoteTunnelPublicIP:  param.remoteGatewayIP,
+			RemoteEndpointIP:      param.remoteGatewayIP,
 			LocalTunnelPublicIP:   param.localGatewayIP,
 		},
 	}
